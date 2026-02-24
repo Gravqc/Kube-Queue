@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+
+# Poetry
+.venv/
+poetry.toml
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Env files
+.env
+.env.*
+
+# Logs
+*.log
+
+# Docker
+*.tar
+
+# Kubernetes
+*.kubeconfig
+
+# Testing / coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Misc
+*.swp
