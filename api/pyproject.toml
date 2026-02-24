@@ -1,0 +1,19 @@
+[project]
+name = "kubequeue_api"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Gaurav",email = "gauravgowda452@gmail.com"}
+]
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi (>=0.133.0,<0.134.0)",
+    "uvicorn (>=0.41.0,<0.42.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+packages = [{ include = "kubequeue_api", from = "src" }]
