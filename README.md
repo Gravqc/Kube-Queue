@@ -37,90 +37,235 @@ Scheduled across Worker Nodes
 - Python 3.11+
 - Poetry (dependency management)
 
-## ⚙️ Local Kubernetes Setup
+# 🚀 Running KubeQueue Locally
 
-Create the multi-node cluster:
+This section describes how to start the full system from scratch on a clean machine.
 
+---
+
+## 1️⃣ Create the Kind Cluster (K8s)
+
+```bash
 kind create cluster --name kubequeue --config kind-config.yaml
+```
 
-Cluster configuration:
+### What’s happening?
 
-1 Control Plane node
-
-2 Worker nodes
+* Creates a multi-node Kubernetes cluster
+* 1 control plane node
+* 2 worker nodes
+* Maps host port `8080` → NodePort `30080`
+* Kubernetes control plane becomes accessible via `kubectl`
 
 Verify:
 
+```bash
 kubectl get nodes
-🐳 Build the Application
-
-From project root:
 ```
+
+You should see 3 nodes in `Ready` state.
+
+---
+
+## 2️⃣ Install NGINX Ingress Controller (Kind Version)
+
+```bash
+kubectl apply -f https://kind.sigs.k8s.io/examples/ingress/deploy-ingress-nginx.yaml
+```
+
+Wait until:
+
+```bash
+kubectl get pods -n ingress-nginx
+```
+
+Controller pod should be `Running`.
+
+### What’s happening?
+
+* Installs NGINX inside cluster
+* Acts as edge router
+* Will route external HTTP traffic to internal services
+
+---
+
+## 3️⃣ Configure Ingress to Use Fixed NodePort
+
+Force ingress to use NodePort `30080`:
+
+```bash
+kubectl patch svc ingress-nginx-controller \
+  -n ingress-nginx \
+  --type='json' \
+  -p='[
+    {"op":"replace","path":"/spec/type","value":"NodePort"},
+    {"op":"replace","path":"/spec/ports/0/nodePort","value":30080}
+  ]'
+```
+
+### What’s happening?
+
+* Converts ingress service to NodePort
+* Exposes port 30080 inside cluster
+* Port 30080 maps to `localhost:8080` via Kind config
+
+Traffic path now becomes:
+
+```
+localhost:8080 → Ingress → Service → Pod
+```
+
+---
+
+## 4️⃣ Create Application Namespace
+
+```bash
+kubectl create namespace kubequeue
+```
+
+### Why?
+
+* Logical isolation
+* Clean separation from system components
+
+---
+
+## 5️⃣ Build the Docker Image
+
+```bash
 docker build -t kubequeue_api:local ./api
 ```
 
-Load image into Kind:
-```
+### What’s happening?
+
+* Containerizes FastAPI app
+* Produces image `kubequeue_api:local`
+
+---
+
+## 6️⃣ Load Image Into Kind
+
+```bash
 kind load docker-image kubequeue_api:local --name kubequeue
 ```
-🚀 Deploy to Kubernetes
 
-Apply manifests:
-```
+### Why is this required?
+
+Kind nodes are Docker containers.
+
+They **cannot see your local images automatically**.
+
+This command injects the image into cluster nodes.
+
+---
+
+## 7️⃣ Deploy Application to Kubernetes
+
+```bash
 kubectl apply -f k8s/api-deployment.yaml
 kubectl apply -f k8s/api-service.yaml
+kubectl apply -f k8s/api-ingress.yaml
 ```
+
+### What’s happening?
+
+* Deployment → creates pods (replicas)
+* Service → provides stable internal access
+* Ingress → exposes service externally
 
 Verify:
-```
-kubectl get pods -n kubequeue -o wide
+
+```bash
+kubectl get pods -n kubequeue
 kubectl get svc -n kubequeue
-```
-🔎 Test Internal Service
-
-Run a temporary curl pod inside the cluster:
-```
-kubectl run curl-test \
-  --image=curlimages/curl \
-  --rm -it \
-  --restart=Never \
-  -n kubequeue \
-  -- sh
-```
-Inside the shell:
-```
-curl http://kubequeue-api/health
+kubectl get ingress -n kubequeue
 ```
 
-You should receive:
+Pods should be `Running`.
 
-{"status":"ok"}
+---
 
-If scaled to multiple replicas, requests will be load-balanced across pods.
-EX: To see loadbalancing/how requests are forwarded to different replicas/ running pods
-```
-kubectl scale deployment kubequeue-api --replicas=3 -n kubequeue
-```
+## 8️⃣ Configure Local Hostname
+
+Add this to `/etc/hosts`:
 
 ```
-kubectl run curl-test \
-  --image=curlimages/curl \
-  --rm -it \
-  --restart=Never \
-  -n kubequeue \
-  -- sh
-
-Inside bash
-while true; do curl http://kubequeue-api/health; sleep 1; done
+127.0.0.1 kubequeue.local
 ```
 
-## 🧠 Infrastructure Concepts Practiced
-- Control Plane vs Worker Nodes
-- Pod scheduling
-- Deployments & ReplicaSets
-- Service abstraction
-- Internal DNS resolution
-- ClusterIP networking
-- Resource constraints
-- Liveness & readiness probes
-- Self-healing behavior
+### Why?
+
+Ingress routes based on Host header.
+
+This makes your browser resolve:
+
+```
+kubequeue.local → localhost
+```
+
+---
+
+## 9️⃣ Test the Application
+
+```bash
+curl -H "Host: kubequeue.local" http://localhost:8080/health
+```
+
+Expected output:
+
+```json
+{"status":"ok","hostname":"kubequeue-api-xxxxx"}
+```
+
+You can also open in browser:
+
+```
+http://kubequeue.local:8080/health
+```
+
+---
+
+# 🧠 Full Request Flow
+
+When you call the API:
+
+```
+Browser
+  ↓
+localhost:8080
+  ↓
+Kind NodePort (30080)
+  ↓
+NGINX Ingress
+  ↓
+ClusterIP Service
+  ↓
+One of the API Pods
+```
+
+Requests are load-balanced across replicas automatically.
+
+---
+
+# 🧹 Optional: Cleanup
+
+Delete cluster:
+
+```bash
+kind delete cluster --name kubequeue
+```
+
+---
+
+# 🎯 What This Setup Demonstrates
+
+* Multi-node Kubernetes cluster
+* Pod scheduling
+* Replica management
+* Internal DNS & service discovery
+* Liveness & readiness probes
+* Ingress-based routing
+* NodePort networking in local clusters
+* Image management in Kind
+
+---
