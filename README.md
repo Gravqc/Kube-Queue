@@ -4,8 +4,6 @@ A **distributed task processing system** built on Kubernetes, demonstrating real
 
 This project showcases how to build a scalable, production-like microservices architecture with message queues, worker pools, and automatic scaling—all running locally on your machine.
 
-![Worker API Pod Interaction](images/Worker_API_Pod_Interaction.png)
-
 ## 🎯 What is KubeQueue?
 
 KubeQueue is a hands-on learning project that implements a complete distributed task queue system with the following components:
@@ -61,8 +59,6 @@ The focus is on **infrastructure, Kubernetes primitives, and distributed systems
 4. **Worker Pod** blocks on Redis using `BLPOP`, waiting for tasks
 5. **Worker** processes task (simulates 2-second work with logging)
 6. **HPA** monitors worker CPU usage and scales from 1 to 10 pods when CPU > 50%
-
-![Horizontal Scaling](images/Horizontal-Scaling.png)
 
 ## 📦 Technology Stack
 
