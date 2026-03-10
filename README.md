@@ -17,7 +17,7 @@ At this stage, the project includes:
 - Internal DNS-based service discovery
 - Load balancing across Pods
 
-The system is deployed inside a local Kind cluster.
+The system is deployed inside a local Kind (K8s) cluster.
 
 ## 🏗 Architecture (Current Phase)
 
@@ -263,7 +263,10 @@ Expected:
 Generate load:
 
 ```bash
-while true; do curl -s -H "Host: kubequeue.local" http://localhost:8080/health > /dev/null; done
+while true; do
+  curl -H "Host: kubequeue.local" http://localhost:8080/health
+  sleep 2
+done
 ```
 
 In another terminal:
@@ -337,3 +340,7 @@ kind delete cluster --name kubequeue
 * Automatic load balancing across replicas
 
 ---
+Delete Cluster: 
+```
+kind delete cluster --name kubequeue
+```
