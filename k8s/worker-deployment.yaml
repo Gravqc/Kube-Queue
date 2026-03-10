@@ -1,24 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: kubequeue-api
+  name: kubequeue-worker
   namespace: kubequeue
 spec:
-  replicas: 2
+  replicas: 1  # Start with 1 worker, HPA will scale as needed
   selector:
     matchLabels:
-      app: kubequeue-api
+      app: worker
   template:
     metadata:
       labels:
-        app: kubequeue-api
+        app: worker
     spec:
       containers:
-        - name: api
-          image: kubequeue_api:local
+        - name: worker
+          image: kubequeue_worker:local
           imagePullPolicy: IfNotPresent
-          ports:
-            - containerPort: 8000
           env:
             # Load Redis configuration from ConfigMap
             - name: REDIS_HOST
@@ -38,15 +36,3 @@ spec:
             limits:
               cpu: "300m"
               memory: "256Mi"
-          livenessProbe:
-            httpGet:
-              path: /health
-              port: 8000
-            initialDelaySeconds: 5
-            periodSeconds: 10
-          readinessProbe:
-            httpGet:
-              path: /health
-              port: 8000
-            initialDelaySeconds: 5
-            periodSeconds: 10

@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kubequeue-config
+  namespace: kubequeue
+data:
+  # Redis connection configuration
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
